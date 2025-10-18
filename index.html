@@ -412,6 +412,79 @@
         }
       });
 
+      // ---------- QR CODE VERIFICATION ----------
+      const QR_SECRET = "mySuperSecretKey123"; // must match generator
+
+      function getQRParamsFromURL() {
+        const hash = window.location.hash.slice(1); // remove leading #
+        const params = new URLSearchParams(hash);
+        return {
+          subject: params.get("subject"),
+          year: params.get("year"),
+          timestamp: params.get("timestamp"),
+          expires: params.get("expires"),
+          sig: params.get("sig"),
+        };
+      }
+
+      async function verifyQRCodeParams({
+        subject,
+        year,
+        timestamp,
+        expires,
+        sig,
+      }) {
+        if (!subject || !year || !timestamp || !expires || !sig) return false;
+
+        // Expiry check
+        const now = Date.now();
+        if (now > parseInt(expires)) return false;
+
+        // Recreate the same string used in generator
+        const raw = `${subject}-${year}-${timestamp}-${expires}-${QR_SECRET}`;
+        const expectedSig = await hashSHA256Hex(raw);
+
+        return sig === expectedSig;
+      }
+
+      // ---------- Restrict access unless scanned ----------
+      (async function enforceQRValidation() {
+        const qrParams = getQRParamsFromURL();
+        const isValid = await verifyQRCodeParams(qrParams);
+
+        if (!isValid) {
+          document.body.innerHTML = `
+      <div style="
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        background: linear-gradient(135deg, #fce4e4, #ffffff);
+        font-family: 'Segoe UI', sans-serif;
+        padding: 20px;
+      ">
+        <div style="
+          background-color: #fff3f3;
+          border: 1px solid #ffcccc;
+          padding: 30px 25px;
+          border-radius: 15px;
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+          text-align: center;
+          max-width: 480px;
+          width: 100%;
+        ">
+          <h2 style="color: #c40000; margin-bottom: 12px;">❌ Access Denied</h2>
+          <p style="color: #444; font-size: 16px;">
+            QR code missing or invalid.<br />Please scan again from the correct source.
+          </p>
+        </div>
+      </div>
+    `;
+        } else {
+          console.log("✅ QR verification passed.");
+        }
+      })();
+
       // ---------- Init ----------
       (async function init() {
         if (checkSubmissionLock()) return;
