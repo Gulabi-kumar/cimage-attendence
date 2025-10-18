@@ -181,6 +181,12 @@
       </div>
     </div>
 
+    <input type="hidden" name="qr_subject" id="qr_subject" />
+    <input type="hidden" name="qr_year" id="qr_year" />
+    <input type="hidden" name="qr_timestamp" id="qr_timestamp" />
+    <input type="hidden" name="qr_expires" id="qr_expires" />
+    <input type="hidden" name="qr_sig" id="qr_sig" />
+
     <script>
       // ---------- Configuration ----------
       const COLLEGE_LAT = 25.6234665;
@@ -448,6 +454,8 @@
       }
 
       // ---------- Restrict access unless scanned ----------
+
+      // Restrict access unless scanned
       (async function enforceQRValidation() {
         const qrParams = getQRParamsFromURL();
         const isValid = await verifyQRCodeParams(qrParams);
@@ -480,9 +488,18 @@
         </div>
       </div>
     `;
-        } else {
-          console.log("✅ QR verification passed.");
+          return;
         }
+
+        // ✅ If valid, fill hidden form fields
+        document.getElementById("qr_subject").value = qrParams.subject || "";
+        document.getElementById("qr_year").value = qrParams.year || "";
+        document.getElementById("qr_timestamp").value =
+          qrParams.timestamp || "";
+        document.getElementById("qr_expires").value = qrParams.expires || "";
+        document.getElementById("qr_sig").value = qrParams.sig || "";
+
+        window.qrValid = true; // Optional: global flag
       })();
 
       // ---------- Init ----------
